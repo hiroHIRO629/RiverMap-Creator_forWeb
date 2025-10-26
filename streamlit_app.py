@@ -376,19 +376,19 @@ def render():
 
     st.markdown(
         """
-        表示する地図タイプの例（重信川：愛媛県）
+        ↓ 表示する地図タイプの例（重信川：愛媛県）
         """
     )
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
-        st.caption("水系全域を青線で表示。国内一級河川水系（109水系）を指定可能。")
+        st.caption("水系全域を青線で表示。一級河川水系（109水系）を指定可能。")
     with col_b:
         _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
-        st.caption("選択した河川（本川または支川）のみを表示。")
+        st.caption("指定した河川（本川または支川）のみを表示。")
     with col_c:
         _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
-        st.caption("水系と河川を青線と赤線で重ね描き。")
+        st.caption("指定した河川（赤線）とそれが含まれる水系（青線）を重ね描き。")
     st.markdown("</div>", unsafe_allow_html=True)
 
     if "form_submitted" not in st.session_state:
