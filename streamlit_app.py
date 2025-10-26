@@ -378,7 +378,7 @@ def render():
     st.sidebar.markdown(
         """
         出典：国土数値情報（河川データ）（国土交通省）
-       (https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-W05.html)
+       (https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-W05.html)   
         本アプリは上記データを加工して作成しています。   
         データには空間的・時間的な誤差が含まれる可能性があり、正確な測量・証明・ナビゲーション等の用途には適していません。  
         利用は自己責任で行ってください。  
