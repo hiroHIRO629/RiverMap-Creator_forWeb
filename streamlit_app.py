@@ -377,14 +377,14 @@ def render():
     st.sidebar.header("データ提供元・利用条件")
     st.sidebar.markdown(
         """
-        出典：国土数値情報（河川データ）（国土交通省）  
-        [https://nlftp.mlit.go.jp/ksj/](https://nlftp.mlit.go.jp/ksj/)（2025年10月26日取得）  
+        出典：[国土数値情報（河川データ）（国土交通省）] 
+        (https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-W05.html)（2025年10月26日取得）  
         このアプリは上記データを加工して作成しています。  
         本アプリで使用している河川データは国土交通省「国土数値情報」をもとに作成したものです。  
         データには空間的・時間的な誤差が含まれる可能性があり、正確な測量・証明・ナビゲーション等の用途には適していません。  
         利用は自己責任で行ってください。  
         本データは国土数値情報ダウンロードサービスの利用規約に基づいて利用しています。  
-        [利用規約はこちら](https://nlftp.mlit.go.jp/ksj/terms.html)
+        [利用規約はこちら](https://nlftp.mlit.go.jp/ksj/other/agreement_02.html)
         """,
         unsafe_allow_html=True,
     )
