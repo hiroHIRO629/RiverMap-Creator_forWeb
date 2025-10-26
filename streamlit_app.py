@@ -355,7 +355,7 @@ def render():
     )
 
     st.sidebar.header("水系とは")
-    st.sidebar,markdown(
+    st.sidebar.markdown(
         "ある河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の水系が存在．"
     )
 
