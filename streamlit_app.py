@@ -373,11 +373,11 @@ def render():
         for system in water_systems:
             st.markdown(system)
 
-    st.markdown("表示する地図タイプの例（重信川：愛媛県）")
+    st.markdown("⬇️表示する地図タイプの例（重信川：愛媛県）⬇️")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
-        st.caption("水系全域を青線で表示．国内一級河川水系(109水系)を指定可能．")
+        st.caption("水系全域を青線で表示．国内一級河川水系（109水系）を指定可能．")
     with col_b:
         _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
         st.caption("選択した河川（本川または支川）のみを表示．")
@@ -420,9 +420,9 @@ def render():
         if marker_choice == "point":
             col_lon, col_lat = st.columns(2)
             with col_lon:
-                lon_input = st.text_input("経度 (例: 132.77)")
+                lon_input = st.text_input("経度")
             with col_lat:
-                lat_input = st.text_input("緯度 (例: 33.85)")
+                lat_input = st.text_input("緯度")
 
         submitted = st.form_submit_button("地図を表示", type="primary")
 
