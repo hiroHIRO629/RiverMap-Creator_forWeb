@@ -339,10 +339,10 @@ def parse_marker_input(text: str) -> list[Marker]:
         line = line.replace("、", ",")
         parts = [p.strip() for p in line.split(",")]
         if len(parts) != 2:
-            raise ValueError(f"{idx}行目: '経度,緯度' の形式で入力してください。")
+            raise ValueError(f"{idx}行目: '緯度,経度' の形式で入力してください。")
         try:
-            lon = float(parts[0])
-            lat = float(parts[1])
+            lat = float(parts[0])
+            lon = float(parts[1])
         except ValueError as exc:
             raise ValueError(f"{idx}行目: 数値に変換できません。({raw_line})") from exc
         markers.append(Marker(lon=lon, lat=lat))
@@ -448,9 +448,9 @@ def render():
 
         if marker_choice == "point":
             marker_input = st.text_area(
-                "座標リスト（経度,緯度 を1行ごとに）",
-                placeholder="132.77,33.85\n132.70,33.80",
-                help="経度,緯度 の形式で1行につき1地点を入力。複数行入力すると複数地点にマーカーが描画されます。",
+                "座標リスト（緯度,経度 を1行ごとに）",
+                placeholder="33.85,132.77\n33.80,132.70",
+                help="緯度,経度 の形式で1行につき1地点を入力。複数行入力すると複数地点にマーカーが描画されます。",
             )
 
         submitted = st.form_submit_button("地図を表示", type="primary")
