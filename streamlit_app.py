@@ -363,16 +363,6 @@ def render():
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stForm"][aria-label="map_example_form"] button[kind="formSubmit"] {
-            display: none;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
     st.sidebar.header("水系とは")
     st.sidebar.markdown(
@@ -384,26 +374,24 @@ def render():
         for system in water_systems:
             st.markdown(system)
 
-    with st.form("map_example_form", clear_on_submit=False):
-        st.markdown(
-            """
-            <div style="border:2px solid #2563eb;background:#eef4ff;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
-                <strong>⬇️ 表示する地図タイプの例（重信川：愛媛県） ⬇️</strong>
-            """,
-            unsafe_allow_html=True,
-        )
-        col_a, col_b, col_c = st.columns(3)
-        with col_a:
-            _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
-            st.caption("水系全域を青線で表示。国内一級河川水系（109水系）を指定可能。")
-        with col_b:
-            _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
-            st.caption("選択した河川（本川または支川）のみを表示。")
-        with col_c:
-            _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
-            st.caption("水系と河川を青線と赤線で重ね描き。")
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.form_submit_button("map_example_hidden")
+    st.markdown(
+        """
+        <div style="border:2px solid #2563eb;background:#eef4ff;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+            <strong>⬇️ 表示する地図タイプの例（重信川：愛媛県） ⬇️</strong>
+        """,
+        unsafe_allow_html=True,
+    )
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
+        st.caption("水系全域を青線で表示。国内一級河川水系（109水系）を指定可能。")
+    with col_b:
+        _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
+        st.caption("選択した河川（本川または支川）のみを表示。")
+    with col_c:
+        _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
+        st.caption("水系と河川を青線と赤線で重ね描き。")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if "form_submitted" not in st.session_state:
         st.session_state.form_submitted = False
