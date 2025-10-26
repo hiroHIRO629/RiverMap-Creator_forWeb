@@ -18,6 +18,15 @@ from shapely.geometry import Point
 from streamlit_folium import st_folium
 from json import loads as json_loads
 
+
+def _display_local_image(path: Path, caption: Optional[str] = None) -> None:
+    """Safely display a local image file in Streamlit."""
+    try:
+        with path.open("rb") as fp:
+            st.image(fp.read(), caption=caption)
+    except FileNotFoundError:
+        st.warning(f"画像ファイルが見つかりません: {path.name}")
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 ASSET_DIR = BASE_DIR / "assets"
@@ -298,7 +307,7 @@ def render():
 
     logo_path = ASSET_DIR / "RMC_long2.png"
     if logo_path.exists():
-        st.image(str(logo_path))
+        _display_local_image(logo_path)
     st.markdown(
         """
 ### 指定された国内河川を検索し、対象エリアにズームして表示するアプリ  
@@ -319,13 +328,13 @@ def render():
     st.markdown("重信川（愛媛県）の例 ↓")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        st.image(ASSET_DIR / "a.png", caption="a：水系全体")
+        _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体")
         st.caption("水系全域を青線で表示。")
     with col_b:
-        st.image(ASSET_DIR / "b.png", caption="b：河川")
+        _display_local_image(ASSET_DIR / "b.png", caption="b：河川")
         st.caption("選択した河川のみを表示。")
     with col_c:
-        st.image(ASSET_DIR / "c.png", caption="c：水系＋河川")
+        _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川")
         st.caption("水系と河川を青線と赤線で重ね描き。")
 
     r_type = st.radio(
