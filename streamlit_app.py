@@ -355,18 +355,17 @@ def render():
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 表示する地図タイプを選択")
-    st.markdown("重信川（愛媛県）の例 ↓")
+    st.markdown("### 表示する地図タイプの例（重信川：愛媛県）")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体")
-        st.caption("水系全域を青線で表示。")
+        st.caption("水系全域を青線で表示．国内一級河川水系を指定可能．")
     with col_b:
         _display_local_image(ASSET_DIR / "b.png", caption="b：河川")
-        st.caption("選択した河川のみを表示。")
+        st.caption("選択した河川（本川/支川）のみを表示．")
     with col_c:
         _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川")
-        st.caption("水系と河川を青線と赤線で重ね描き。")
+        st.caption("水系と河川を青線と赤線で重ね描き．")
 
     r_type = st.radio(
         "地図タイプ",
