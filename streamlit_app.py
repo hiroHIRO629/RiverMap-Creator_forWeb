@@ -344,7 +344,7 @@ def render():
         _display_local_image(logo_path)
     st.markdown(
         """
-### 指定された国内河川を検索して表示するアプリ  
+### 指定された国内河川を検索して地図上に表示するアプリ  
         """.strip()
     )
 
