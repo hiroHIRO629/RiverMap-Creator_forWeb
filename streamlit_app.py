@@ -182,18 +182,21 @@ def build_map(
     scale_style = Element(
         """
         <style>
+        .leaflet-control-scale {
+            font-size: 16px !important;
+        }
         .leaflet-control-scale-line {
-            padding: 6px 12px;
-            font-size: 14px;
-            border-width: 2px;
+            padding: 10px 18px !important;
+            font-size: 16px !important;
+            border-width: 3px !important;
         }
         .leaflet-control-scale-line:first-child {
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
         }
         .leaflet-control-scale-line:last-child {
-            border-bottom-left-radius: 6px;
-            border-bottom-right-radius: 6px;
+            border-bottom-left-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
         }
         </style>
         """
