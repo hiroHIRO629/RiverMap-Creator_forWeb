@@ -208,7 +208,7 @@ def build_map(
             ),
         ).add_to(fmap)
 
-    folium.LayerControl(collapsed=True, position="topright").add_to(fmap)
+    folium.LayerControl(collapsed=False, position="topright").add_to(fmap)
 
     fmap.fit_bounds([[south, west], [north, east]], padding=(28, 28))
     return fmap
