@@ -208,7 +208,7 @@ def build_map(
             ),
         ).add_to(fmap)
 
-    folium.LayerControl(collapsed=False, position="topright").add_to(fmap)
+    folium.LayerControl(collapsed=True, position="topright").add_to(fmap)
 
     fmap.fit_bounds([[south, west], [north, east]], padding=(28, 28))
     return fmap
@@ -438,7 +438,7 @@ def render():
     river_map = build_map(main_geom, sub_geom, marker)
     st_folium(
         river_map,
-        width=1100,
+        width=None,
         height=700,
         returned_objects=[],
         key=f"river_map_{r_type}_{river_code}",
