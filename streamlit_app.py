@@ -371,7 +371,7 @@ def render():
     water_systems = load_water_systems()
     with st.sidebar.expander(f"全国水系一覧 ({len(water_systems)})", expanded=False):
         for system in water_systems:
-            st.sidebar.markdown(system)
+            st.markdown(system)
 
     st.markdown("表示する地図タイプの例（重信川：愛媛県）")
     col_a, col_b, col_c = st.columns(3)
