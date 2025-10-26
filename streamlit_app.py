@@ -376,10 +376,8 @@ def render():
 
     st.markdown(
         """
-        <div style="border:2px solid #2563eb;background:#eef4ff;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
-            <strong>⬇️ 表示する地図タイプの例（重信川：愛媛県） ⬇️</strong>
-        """,
-        unsafe_allow_html=True,
+        表示する地図タイプの例（重信川：愛媛県）
+        """
     )
     col_a, col_b, col_c = st.columns(3)
     with col_a:
