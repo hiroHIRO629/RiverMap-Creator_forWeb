@@ -336,7 +336,6 @@ def render():
     st.markdown(
         """
 ### 指定された国内河川を検索して表示するアプリ  
-表示結果は GeoJSON と PNG としてダウンロード可能。
         """.strip()
     )
 
@@ -345,7 +344,7 @@ def render():
         with sidebar_logo.open("rb") as fp:
             st.sidebar.image(fp.read())
 
-    st.sidebar.header("使い方")
+    st.sidebar.header("⭐️⭐️使い方⭐️⭐️")
     st.sidebar.markdown(
         "1️⃣ 地図タイプを選択<br>"
         "2️⃣ 河川名を正確に入力<br>"
@@ -355,16 +354,16 @@ def render():
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 表示する地図タイプの例（重信川：愛媛県）")
+    st.markdown("表示する地図タイプの例（重信川：愛媛県）")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体")
+        _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
         st.caption("水系全域を青線で表示．国内一級河川水系を指定可能．")
     with col_b:
-        _display_local_image(ASSET_DIR / "b.png", caption="b：河川")
-        st.caption("選択した河川（本川/支川）のみを表示．")
+        _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
+        st.caption("選択した河川（本川または支川）のみを表示．")
     with col_c:
-        _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川")
+        _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
         st.caption("水系と河川を青線と赤線で重ね描き．")
 
     r_type = st.radio(
