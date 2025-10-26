@@ -310,7 +310,7 @@ def render():
         _display_local_image(logo_path)
     st.markdown(
         """
-### 指定された国内河川を検索し、対象エリアにズームして表示するアプリ  
+### 指定された国内河川を検索し、対象河川を表示するアプリ  
 表示結果は GeoJSON と PNG としてダウンロード可能。
         """.strip()
     )
