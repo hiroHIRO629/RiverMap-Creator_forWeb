@@ -340,6 +340,11 @@ def render():
         """.strip()
     )
 
+    sidebar_logo = ASSET_DIR / "RMC.png"
+    if sidebar_logo.exists():
+        with sidebar_logo.open("rb") as fp:
+            st.sidebar.image(fp.read())
+
     st.sidebar.header("使い方")
     st.sidebar.markdown(
         "- 1️⃣地図タイプを選択\n"
