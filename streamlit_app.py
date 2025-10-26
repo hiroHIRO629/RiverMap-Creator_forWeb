@@ -376,7 +376,7 @@ def render():
 
     st.markdown(
         """
-        ↓ 表示可能な河川のタイプには以下の三つがある（例：重信川-愛媛県）
+        ↓ 表示可能な河川タイプには以下の三つがある（例：重信川-愛媛県）
         """
     )
     col_a, col_b, col_c = st.columns(3)
@@ -387,7 +387,7 @@ def render():
         _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
         st.caption("指定した河川（本川または支川）のみを表示。")
     with col_c:
-        _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
+        _display_local_image(ASSET_DIR / "c.png", caption="c：水系全体と河川（重信川水系＋重信川）")
         st.caption("指定した河川（赤線）とそれが含まれる水系（青線）を重ね描き。")
     st.markdown("</div>", unsafe_allow_html=True)
 
