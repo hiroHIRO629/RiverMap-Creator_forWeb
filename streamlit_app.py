@@ -354,11 +354,16 @@ def render():
         unsafe_allow_html=True,
     )
 
+    st.sidebar.header("水系とは")
+    st.sidebar,markdown(
+        "ある河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の水系が存在．"
+    )
+
     st.markdown("表示する地図タイプの例（重信川：愛媛県）")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         _display_local_image(ASSET_DIR / "a.png", caption="a：水系全体（重信川水系）")
-        st.caption("水系全域を青線で表示．国内一級河川水系を指定可能．")
+        st.caption("水系全域を青線で表示．国内一級河川水系(109水系)を指定可能．")
     with col_b:
         _display_local_image(ASSET_DIR / "b.png", caption="b：河川（重信川）")
         st.caption("選択した河川（本川または支川）のみを表示．")
