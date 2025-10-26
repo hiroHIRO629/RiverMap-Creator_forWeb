@@ -407,7 +407,7 @@ def render():
         river_name = st.text_input(
             "河川/水系名",
             placeholder="正式名称を全角で入力してください",
-            help="〜川まで入力すること．a:水系全体を選択した場合でも〜川と入力（〜水系は×）"
+            help="「〜川」まで入力すること．a:水系全体を選択した場合でも「〜川」と入力．"
         ).strip()
 
         marker_choice = st.radio(
