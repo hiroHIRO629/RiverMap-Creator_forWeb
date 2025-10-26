@@ -385,25 +385,28 @@ def render():
         _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
         st.caption("水系と河川を青線と赤線で重ね描き．")
 
-    r_type = st.radio(
-        "地図タイプ",
-        options=list(MAP_TYPES.keys()),
-        horizontal=True,
-        format_func=lambda key: f"{key}：{MAP_TYPES[key]}",
-        help="a=水系全体、b=河川のみ、c=水系＋河川を同時表示します。",
-    )
-
-    try:
-        river_table = load_river_table(r_type)
-    except FileNotFoundError as exc:
-        st.error(str(exc))
-        st.stop()
-
     if "form_submitted" not in st.session_state:
         st.session_state.form_submitted = False
         st.session_state.form_signature = None
 
     with st.form("river_form", clear_on_submit=False):
+        st.markdown(
+            """
+            <div style="padding:10px;border:2px solid #1d4ed8;border-radius:8px;background:#f0f6ff;margin-bottom:10px;">
+                <strong>地図タイプを選択</strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        r_type = st.radio(
+            "地図タイプ",
+            options=list(MAP_TYPES.keys()),
+            horizontal=True,
+            format_func=lambda key: f"{key}：{MAP_TYPES[key]}",
+            help="a=水系全体、b=河川のみ、c=水系＋河川を同時表示します。",
+        )
+
         river_name = st.text_input(
             "河川/水系名",
             placeholder="正式名称を全角で入力してください",
@@ -442,6 +445,12 @@ def render():
         st.session_state.form_submitted = False
 
     if not st.session_state.form_submitted:
+        st.stop()
+
+    try:
+        river_table = load_river_table(r_type)
+    except FileNotFoundError as exc:
+        st.error(str(exc))
         st.stop()
 
     if not river_name:
