@@ -397,6 +397,7 @@ def render():
         st.session_state.form_signature = None
 
     with st.form("river_form", clear_on_submit=False):
+        """
         st.markdown(
             """
             <div style="padding:10px;border:2px solid #1d4ed8;border-radius:8px;background:#f0f6ff;margin-bottom:10px;">
@@ -405,7 +406,7 @@ def render():
             """,
             unsafe_allow_html=True,
         )
-
+        """
         r_type = st.radio(
             "地図タイプ",
             options=list(MAP_TYPES.keys()),
