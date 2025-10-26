@@ -154,7 +154,7 @@ def expand_bounds(
 def build_map(
     main: gpd.GeoDataFrame,
     sub: Optional[gpd.GeoDataFrame],
-    marker: Optional[Marker],
+    markers: list[Marker],
 ) -> folium.Map:
     (south, west), (north, east) = expand_bounds(main, sub)
     center_lat = (south + north) / 2
@@ -234,7 +234,7 @@ def build_map(
         ).add_to(river_layer)
         river_layer.add_to(fmap)
 
-    if marker is not None:
+    for marker in markers:
         folium.Marker(
             location=[marker.lat, marker.lon],
             icon=folium.DivIcon(
@@ -251,7 +251,7 @@ def build_map(
 def create_static_map_image(
     main: gpd.GeoDataFrame,
     sub: Optional[gpd.GeoDataFrame],
-    marker: Optional[Marker],
+    markers: list[Marker],
 ) -> StaticMapResult:
     main_3857 = main.to_crs(epsg=3857)
     sub_3857 = sub.to_crs(epsg=3857) if sub is not None and not sub.empty else None
@@ -265,8 +265,11 @@ def create_static_map_image(
         maxy = max(maxy, symax)
 
     marker_series = None
-    if marker is not None:
-        marker_series = gpd.GeoSeries([Point(marker.lon, marker.lat)], crs="EPSG:4326").to_crs(epsg=3857)
+    if markers:
+        marker_series = gpd.GeoSeries(
+            [Point(marker.lon, marker.lat) for marker in markers],
+            crs="EPSG:4326",
+        ).to_crs(epsg=3857)
         minx = min(minx, marker_series.x.min())
         maxx = max(maxx, marker_series.x.max())
         miny = min(miny, marker_series.y.min())
@@ -325,15 +328,25 @@ def create_static_map_image(
     return StaticMapResult(buffer=buffer, warning=basemap_warning)
 
 
-def parse_coordinate(value: str, label: str) -> Optional[float]:
-    value = value.strip()
-    if not value:
-        return None
-    try:
-        return float(value)
-    except ValueError:
-        st.error(f"{label}は数値で入力してください（例: 132.77）。")
-        return None
+def parse_marker_input(text: str) -> list[Marker]:
+    markers: list[Marker] = []
+    if not text:
+        return markers
+    for idx, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line:
+            continue
+        line = line.replace("、", ",")
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) != 2:
+            raise ValueError(f"{idx}行目: '経度,緯度' の形式で入力してください。")
+        try:
+            lon = float(parts[0])
+            lat = float(parts[1])
+        except ValueError as exc:
+            raise ValueError(f"{idx}行目: 数値に変換できません。({raw_line})") from exc
+        markers.append(Marker(lon=lon, lat=lat))
+    return markers
 
 
 def render():
@@ -409,6 +422,8 @@ def render():
         st.session_state.form_submitted = False
         st.session_state.form_signature = None
 
+    marker_input = ""
+
     with st.form("river_form", clear_on_submit=False):
         r_type = st.radio(
             "河川タイプを選択",
@@ -431,13 +446,12 @@ def render():
             horizontal=True,
         )
 
-        lon_input, lat_input = "", ""
         if marker_choice == "point":
-            col_lon, col_lat = st.columns(2)
-            with col_lon:
-                lon_input = st.text_input("経度")
-            with col_lat:
-                lat_input = st.text_input("緯度")
+            marker_input = st.text_area(
+                "座標リスト（経度,緯度 を1行ごとに）",
+                placeholder="132.77,33.85\n132.70,33.80",
+                help="経度,緯度 の形式で1行につき1地点を入力。複数行入力すると複数地点にマーカーが描画されます。",
+            )
 
         submitted = st.form_submit_button("地図を表示", type="primary")
 
@@ -445,8 +459,7 @@ def render():
         r_type,
         river_name,
         marker_choice,
-        lon_input if marker_choice == "point" else None,
-        lat_input if marker_choice == "point" else None,
+        marker_input if marker_choice == "point" else None,
     )
 
     if submitted:
@@ -458,6 +471,18 @@ def render():
 
     if not st.session_state.form_submitted:
         st.stop()
+
+    if marker_choice == "point":
+        try:
+            markers = parse_marker_input(marker_input)
+        except ValueError as exc:
+            st.error(str(exc))
+            st.stop()
+        if not markers:
+            st.warning("座標を少なくとも1行入力してください。")
+            st.stop()
+    else:
+        markers = []
 
     try:
         river_table = load_river_table(r_type)
@@ -518,15 +543,6 @@ def render():
             st.stop()
         river_code = selection
 
-    marker: Optional[Marker] = None
-    if marker_choice == "point":
-        lon = parse_coordinate(lon_input, "経度")
-        lat = parse_coordinate(lat_input, "緯度")
-        if lon is not None and lat is not None:
-            marker = Marker(lon=lon, lat=lat)
-        else:
-            st.info("有効な座標が入力されるまで目印は追加されません。")
-
     try:
         gdf = load_river_geometries()
     except (FileNotFoundError, ValueError) as exc:
@@ -538,7 +554,7 @@ def render():
         st.error("該当する河川ジオメトリが見つかりませんでした。CSV とデータの整合性を確認してください。")
         st.stop()
 
-    river_map = build_map(main_geom, sub_geom, marker)
+    river_map = build_map(main_geom, sub_geom, markers)
     st_folium(
         river_map,
         width=None,
@@ -548,7 +564,7 @@ def render():
     )
 
     with st.spinner("ダウンロード用の静的画像を生成しています..."):
-        static_result = create_static_map_image(main_geom, sub_geom, marker)
+        static_result = create_static_map_image(main_geom, sub_geom, markers)
 
     static_bytes = static_result.buffer.getvalue()
     st.image(static_bytes, caption=f"{river_name}（{river_code}）")
