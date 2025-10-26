@@ -365,11 +365,11 @@ def render():
 
     st.sidebar.header("水系とは")
     st.sidebar.markdown(
-        "河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の一級水系が存在．"
+        "河川(本川)に流れ込む支川や派川を全て合わせたもの．全国で109の一級水系が存在．"
     )
 
     water_systems = load_water_systems()
-    with st.sidebar.expander(f"全国水系一覧 ({len(water_systems)})", expanded=False):
+    with st.sidebar.expander(f"一級水系一覧 ({len(water_systems)})", expanded=False):
         for system in water_systems:
             st.markdown(system)
 
