@@ -344,7 +344,7 @@ def render():
         with sidebar_logo.open("rb") as fp:
             st.sidebar.image(fp.read())
 
-    st.sidebar.header("⭐️⭐️使い方⭐️⭐️")
+    st.sidebar.header("使い方")
     st.sidebar.markdown(
         "1️⃣ 地図タイプを選択<br>"
         "2️⃣ 河川名を正確に入力<br>"
@@ -356,7 +356,7 @@ def render():
 
     st.sidebar.header("水系とは")
     st.sidebar.markdown(
-        "ある河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の水系が存在．"
+        "ある河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の一級水系が存在．"
     )
 
     st.markdown("表示する地図タイプの例（重信川：愛媛県）")
@@ -391,7 +391,7 @@ def render():
 
     with st.form("river_form", clear_on_submit=False):
         river_name = st.text_input(
-            "河川名（例：重信川）",
+            "河川/水系名",
             placeholder="正式名称を全角で入力してください",
         ).strip()
 
