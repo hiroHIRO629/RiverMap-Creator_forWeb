@@ -102,6 +102,12 @@ def load_river_geometries() -> gpd.GeoDataFrame:
     return gdf[["W05_001", "W05_002", "geometry"]].copy()
 
 
+@st.cache_data(show_spinner=False)
+def load_water_systems() -> list[str]:
+    df = load_river_table("a")
+    return sorted(df["水系"].dropna().unique().tolist())
+
+
 def filter_geometries(
     gdf: gpd.GeoDataFrame,
     r_type: str,
@@ -353,6 +359,12 @@ def render():
         "5️⃣ 「地図を表示」を押して結果を確認",
         unsafe_allow_html=True,
     )
+
+    water_systems = load_water_systems()
+    with st.sidebar.expander(f"全国水系一覧 ({len(water_systems)})", expanded=False):
+        cols = st.columns(3)
+        for idx, system in enumerate(water_systems):
+            cols[idx % 3].markdown(system)
 
     st.sidebar.header("水系とは")
     st.sidebar.markdown(
