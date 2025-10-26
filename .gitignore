@@ -1,0 +1,5 @@
+# macOS artifacts
+.DS_Store
+
+# Large source data regenerated locally
+data/all_river.parquet

@@ -1,0 +1,8 @@
+streamlit==1.37.0
+streamlit-folium==0.20.0
+folium==0.16.0
+geopandas==0.14.4
+pyogrio==0.8.0
+pandas==2.2.2
+matplotlib==3.8.4
+contextily==1.4.0
