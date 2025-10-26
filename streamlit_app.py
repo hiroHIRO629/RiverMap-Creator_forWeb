@@ -377,7 +377,6 @@ def render():
         """
         <div style="border:2px solid #2563eb;background:#eef4ff;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
             <strong>⬇️ 表示する地図タイプの例（重信川：愛媛県） ⬇️</strong>
-            <div style="margin-top:12px;">
         """,
         unsafe_allow_html=True,
     )
@@ -391,7 +390,7 @@ def render():
     with col_c:
         _display_local_image(ASSET_DIR / "c.png", caption="c：水系＋河川（重信川水系＋重信川）")
         st.caption("水系と河川を青線と赤線で重ね描き。")
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if "form_submitted" not in st.session_state:
         st.session_state.form_submitted = False
