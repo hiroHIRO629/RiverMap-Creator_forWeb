@@ -351,6 +351,10 @@ def render():
         st.error(str(exc))
         st.stop()
 
+    if "form_submitted" not in st.session_state:
+        st.session_state.form_submitted = False
+        st.session_state.form_signature = None
+
     with st.form("river_form", clear_on_submit=False):
         river_name = st.text_input(
             "河川名（例：重信川）",
@@ -374,7 +378,22 @@ def render():
 
         submitted = st.form_submit_button("地図を表示", type="primary")
 
-    if not submitted:
+    current_signature = (
+        r_type,
+        river_name,
+        marker_choice,
+        lon_input if marker_choice == "point" else None,
+        lat_input if marker_choice == "point" else None,
+    )
+
+    if submitted:
+        st.session_state.form_submitted = True
+        st.session_state.form_signature = current_signature
+
+    if st.session_state.form_signature != current_signature:
+        st.session_state.form_submitted = False
+
+    if not st.session_state.form_submitted:
         st.stop()
 
     if not river_name:
