@@ -9,9 +9,23 @@ def main() -> None:
     if gdf.crs is None:
         gdf.set_crs(epsg=4326, inplace=True)
     else:
-        gdf = gdf.to_crs(epsg=4326)
+        try:
+            epsg = gdf.crs.to_epsg()
+        except Exception:
+            epsg = None
 
-    gdf["geometry"] = gdf.geometry.simplify(0.0005, preserve_topology=True)
+        if epsg == 4326:
+            pass
+        else:
+            bounds = gdf.total_bounds
+            lon_ok = (abs(bounds[[0, 2]]) <= 180).all()
+            lat_ok = (abs(bounds[[1, 3]]) <= 90).all()
+            if lon_ok and lat_ok:
+                gdf = gdf.set_crs(epsg=4326, allow_override=True)
+            else:
+                gdf = gdf.to_crs(epsg=4326)
+
+    gdf["geometry"] = gdf.geometry.simplify(5e-5, preserve_topology=True)
     gdf = gdf[~gdf.geometry.is_empty & gdf.geometry.notna()]
     gdf.to_parquet(DEST, compression="snappy")
     size_mb = DEST.stat().st_size / 1024 ** 2
