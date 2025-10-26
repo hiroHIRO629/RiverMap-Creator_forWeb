@@ -355,7 +355,7 @@ def render():
 
     st.sidebar.header("使い方")
     st.sidebar.markdown(
-        "1️⃣ 地図タイプを選択<br>"
+        "1️⃣ 河川タイプを選択（a,b,cから選択）<br>"
         "2️⃣ 河川名を正確に入力<br>"
         "3️⃣ 複数候補がある場合は河川コードを選択<br>"
         "4️⃣ 任意で座標を入力して目印を追加<br>"
@@ -376,7 +376,7 @@ def render():
 
     st.markdown(
         """
-        ↓ 表示する地図タイプの例（重信川：愛媛県）
+        ↓ 表示する河川タイプの例（重信川：愛媛県）
         """
     )
     col_a, col_b, col_c = st.columns(3)
@@ -397,7 +397,7 @@ def render():
 
     with st.form("river_form", clear_on_submit=False):
         r_type = st.radio(
-            "地図タイプを選択",
+            "河川タイプを選択",
             options=list(MAP_TYPES.keys()),
             horizontal=True,
             format_func=lambda key: f"{key}：{MAP_TYPES[key]}",
