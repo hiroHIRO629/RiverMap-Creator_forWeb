@@ -17,6 +17,7 @@ import streamlit as st
 from shapely.geometry import Point
 from streamlit_folium import st_folium
 from json import loads as json_loads
+from branca.element import Element
 
 
 def _display_local_image(path: Path, caption: Optional[str] = None) -> None:
@@ -177,6 +178,27 @@ def build_map(
         subdomains="abc",
         max_zoom=19,
     ).add_to(fmap)
+
+    scale_style = Element(
+        """
+        <style>
+        .leaflet-control-scale-line {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-width: 2px;
+        }
+        .leaflet-control-scale-line:first-child {
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+        .leaflet-control-scale-line:last-child {
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+        </style>
+        """
+    )
+    fmap.get_root().html.add_child(scale_style)
 
     main_geojson = json_loads(main.to_json())
     water_layer = folium.FeatureGroup(name="水系", show=True)
