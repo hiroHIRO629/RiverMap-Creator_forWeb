@@ -409,11 +409,26 @@ def render():
         st.error("河川コードが見つかりません。CSV の内容を確認してください。")
         st.stop()
 
-    river_code = st.selectbox(
-        "河川コード",
-        options=codes,
-        index=0 if len(codes) == 1 else 0,
-    )
+    if len(codes) == 1:
+        river_code = st.selectbox(
+            "河川コード",
+            options=codes,
+            index=0,
+            help="候補が1件のみの場合は自動的に選択されます。",
+        )
+    else:
+        sentinel = "__NONE__"
+        selection = st.selectbox(
+            "河川コード",
+            options=[sentinel] + codes,
+            index=0,
+            format_func=lambda x: "河川コードを選択してください" if x == sentinel else x,
+            help="複数候補の中から対象の河川コードを選択してください。",
+        )
+        if selection == sentinel:
+            st.info("河川コードを選択すると地図が表示されます。")
+            st.stop()
+        river_code = selection
 
     marker: Optional[Marker] = None
     if marker_choice == "point":
