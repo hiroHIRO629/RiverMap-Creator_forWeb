@@ -105,7 +105,10 @@ def load_river_geometries() -> gpd.GeoDataFrame:
 @st.cache_data(show_spinner=False)
 def load_water_systems() -> list[str]:
     df = load_river_table("a")
-    return sorted(df["水系"].dropna().unique().tolist())
+    return [
+        f"{row['水系']}（{row['開発局']}）"
+        for _, row in df.drop_duplicates(subset=["水系", "開発局"]).iterrows()
+    ]
 
 
 def filter_geometries(
@@ -360,16 +363,15 @@ def render():
         unsafe_allow_html=True,
     )
 
-    water_systems = load_water_systems()
-    with st.sidebar.expander(f"全国水系一覧 ({len(water_systems)})", expanded=False):
-        cols = st.columns(3)
-        for idx, system in enumerate(water_systems):
-            cols[idx % 3].markdown(system)
-
     st.sidebar.header("水系とは")
     st.sidebar.markdown(
-        "ある河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の一級水系が存在．"
+        "河川(本川)に流れ込む支川や派川を全て合わせたもの．日本には全国で109の一級水系が存在．"
     )
+
+    water_systems = load_water_systems()
+    with st.sidebar.expander(f"全国水系一覧 ({len(water_systems)})", expanded=False):
+        for system in water_systems:
+            st.sidebar.markdown(system)
 
     st.markdown("表示する地図タイプの例（重信川：愛媛県）")
     col_a, col_b, col_c = st.columns(3)
