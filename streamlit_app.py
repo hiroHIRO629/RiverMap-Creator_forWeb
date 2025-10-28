@@ -519,7 +519,7 @@ def render():
         .tolist()
     )
     if not codes:
-        st.error("河川コードが見つかりません。CSV の内容を確認してください。")
+        st.error("申し訳ありません。選択された河川はアプリ内の河川データベースに存在しません。")
         st.stop()
 
     if len(codes) == 1:
@@ -551,7 +551,7 @@ def render():
 
     main_geom, sub_geom = filter_geometries(gdf, r_type, river_code)
     if main_geom.empty:
-        st.error("該当する河川ジオメトリが見つかりませんでした。CSV とデータの整合性を確認してください。")
+        st.error("申し訳ありません。選択された河川はアプリ内の河川データベースに存在しません。")
         st.stop()
 
     river_map = build_map(main_geom, sub_geom, markers)
