@@ -505,8 +505,19 @@ def render():
             st.dataframe(candidates.astype(str), use_container_width=True)
         st.stop()
 
+    display_selection = selection.copy()
+    if "都道府県" in display_selection.columns:
+        display_selection["都道府県"] = display_selection["都道府県"].apply(
+            lambda value: (
+                "未登録"
+                if pd.isna(value)
+                or (isinstance(value, str) and value.strip().lower() in {"", "nan"})
+                else value
+            )
+        )
+
     st.write("河川情報")
-    st.dataframe(selection.astype(str), use_container_width=True)
+    st.dataframe(display_selection.astype(str), use_container_width=True)
 
     codes = (
         selection["河川コード"]
