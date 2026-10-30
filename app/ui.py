@@ -11,6 +11,7 @@ from .map_utils import (
     Marker,
     build_map,
     create_static_map_image,
+    download_geojson,
     filter_geometries,
     geometry_summary,
     parse_marker_input,
@@ -221,7 +222,8 @@ def render() -> None:
     export_frames = [main_geom]
     if sub_geom is not None and not sub_geom.empty:
         export_frames.append(sub_geom)
-    export_geojson = pd.concat(export_frames).to_json()
+    export_gdf = pd.concat(export_frames)
+    export_geojson, geojson_simplified = download_geojson(export_gdf)
 
     col_img, col_geo = st.columns(2)
     with col_img:
@@ -235,11 +237,14 @@ def render() -> None:
     with col_geo:
         st.download_button(
             label="GeoJSON をダウンロード",
-            data=export_geojson.encode("utf-8"),
+            data=export_geojson,
             file_name=f"{river_name}_{river_code}_{r_type}.geojson",
             mime="application/geo+json",
             key=f"download_geojson_{r_type}_{river_code}",
         )
+
+    if geojson_simplified:
+        st.caption("GeoJSON はブラウザ上で安全に扱えるサイズに調整しています。")
 
     if static_result.warning:
         st.info(static_result.warning)

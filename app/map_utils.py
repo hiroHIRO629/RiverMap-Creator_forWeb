@@ -22,7 +22,12 @@ from shapely.geometry import Point
 # can exceed its message limit unless the display-only geometry is simplified.
 # This is roughly 25 m at Japanese latitudes: visually faithful at the map's
 # default scale while substantially smaller than the downloadable GeoJSON.
-WEB_SIMPLIFY_TOLERANCE = 0.00025
+# Keep each GeoJSON payload comfortably below Streamlit's ~5 MB WebSocket
+# message ceiling.  A combined map can contain two layers, hence the smaller
+# per-layer budget.
+WEB_GEOJSON_MAX_BYTES = 2_000_000
+DOWNLOAD_GEOJSON_MAX_BYTES = 4_000_000
+SIMPLIFY_TOLERANCES = (0.00025, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02)
 
 
 @dataclass
@@ -77,18 +82,46 @@ def expand_bounds(
     return (south, west), (north, east)
 
 
-def _web_geojson(gdf: gpd.GeoDataFrame, code_column: str) -> dict:
-    """Create compact GeoJSON for the interactive map only.
+def _compact_geojson(
+    gdf: gpd.GeoDataFrame,
+    columns: list[str],
+    max_bytes: int,
+) -> tuple[bytes, bool]:
+    """Serialize GeoJSON within a transport-size budget.
 
-    The original geometry remains available for static PNG output and GeoJSON
-    downloads.  Avoiding feature IDs and nonessential attributes also keeps
-    Streamlit's WebSocket payload well below its per-message limit.
+    The source data is intentionally not altered.  This applies progressively
+    stronger, display-scale simplification only when needed for a browser
+    transfer, and returns whether any simplification was applied.
     """
-    display = gdf[[code_column, "geometry"]].copy()
-    display["geometry"] = display.geometry.simplify(
-        WEB_SIMPLIFY_TOLERANCE, preserve_topology=False
-    )
-    return json_loads(display.to_json(drop_id=True))
+    display = gdf[columns + ["geometry"]].copy()
+    raw = display.to_json(drop_id=True).encode("utf-8")
+    if len(raw) <= max_bytes:
+        return raw, False
+
+    candidate = display
+    for tolerance in SIMPLIFY_TOLERANCES:
+        candidate = display.copy()
+        candidate["geometry"] = candidate.geometry.simplify(
+            tolerance, preserve_topology=False
+        )
+        encoded = candidate.to_json(drop_id=True).encode("utf-8")
+        if len(encoded) <= max_bytes:
+            return encoded, True
+
+    # The final candidate is still valid GeoJSON and is substantially smaller
+    # than the source even for exceptionally detailed water systems.
+    return encoded, True
+
+
+def web_geojson(gdf: gpd.GeoDataFrame, code_column: str) -> dict:
+    """Create compact GeoJSON for the interactive Folium map."""
+    encoded, _ = _compact_geojson(gdf, [code_column], WEB_GEOJSON_MAX_BYTES)
+    return json_loads(encoded)
+
+
+def download_geojson(gdf: gpd.GeoDataFrame) -> tuple[bytes, bool]:
+    """Create a downloadable GeoJSON that cannot overflow Streamlit's socket."""
+    return _compact_geojson(gdf, ["W05_001", "W05_002"], DOWNLOAD_GEOJSON_MAX_BYTES)
 
 
 def build_map(
@@ -143,7 +176,7 @@ def build_map(
     )
     fmap.get_root().html.add_child(scale_style)
 
-    main_geojson = _web_geojson(main, "W05_001")
+    main_geojson = web_geojson(main, "W05_001")
     water_layer = folium.FeatureGroup(name="水系", show=True)
     folium.GeoJson(
         data=main_geojson,
@@ -155,7 +188,7 @@ def build_map(
 
     sub_geojson = None
     if sub is not None and not sub.empty:
-        sub_geojson = _web_geojson(sub, "W05_002")
+        sub_geojson = web_geojson(sub, "W05_002")
         river_layer = folium.FeatureGroup(name="河川", show=True)
         folium.GeoJson(
             data=sub_geojson,
@@ -372,6 +405,7 @@ __all__ = [
     "StaticMapResult",
     "build_map",
     "create_static_map_image",
+    "download_geojson",
     "filter_geometries",
     "geometry_summary",
     "parse_marker_input",
