@@ -80,31 +80,22 @@ def build_map(
     center_lon = (west + east) / 2
 
     fmap = folium.Map(location=[center_lat, center_lon], zoom_start=9, tiles=None, control_scale=True)
+    # Keep the interactive and PNG maps on keyless GSI tiles.  CARTO now
+    # returns an API-key-required image, and all layers used to be enabled at
+    # once, allowing that error image to cover the map.
     folium.TileLayer(
-        tiles="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        name="OpenStreetMap",
-        attr="© OpenStreetMap contributors",
-        max_zoom=19,
-    ).add_to(fmap)
-    folium.TileLayer(
-        tiles="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        name="CartoDB Positron",
-        attr="© OpenStreetMap contributors © CARTO",
-        subdomains="abcd",
-        max_zoom=19,
+        tiles="https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+        name="地理院タイル（標準地図）",
+        attr="地理院タイル",
+        max_zoom=18,
+        show=True,
     ).add_to(fmap)
     folium.TileLayer(
         tiles="https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
         name="GSI Relief",
         attr="地理院タイル（標高陰影図）",
         max_zoom=15,
-    ).add_to(fmap)
-    folium.TileLayer(
-        tiles="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-        name="OSM Humanitarian",
-        attr="© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team",
-        subdomains="abc",
-        max_zoom=19,
+        show=False,
     ).add_to(fmap)
 
     scale_style = Element(
