@@ -15,6 +15,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+# Configures Matplotlib with the bundled, free IPAex Japanese font so that
+# title, legend and marker labels survive Streamlit's Linux rendering.
+import japanize_matplotlib  # noqa: F401
 import numpy as np
 from shapely.geometry import Point
 
