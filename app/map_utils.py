@@ -361,10 +361,10 @@ def create_static_map_image(
     try:
         # OpenStreetMap blocks bulk server-side tile retrieval (HTTP 403) and
         # CARTO can return an "API key required" image instead of an error.
-        # GSI's standard map is a public Japanese basemap and needs no key.
+        # GSI's relief map is a public Japanese basemap and needs no key.
         cx.add_basemap(
             ax,
-            source="https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+            source="https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
             crs="EPSG:3857",
             attribution=False,
         )
