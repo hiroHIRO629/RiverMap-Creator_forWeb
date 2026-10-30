@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Optional
+from xml.sax.saxutils import escape
 
 from branca.element import Element
 from json import loads as json_loads
@@ -34,6 +35,7 @@ SIMPLIFY_TOLERANCES = (0.00025, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02)
 class Marker:
     lon: float
     lat: float
+    label: Optional[str] = None
 
 
 @dataclass
@@ -124,6 +126,39 @@ def download_geojson(gdf: gpd.GeoDataFrame) -> tuple[bytes, bool]:
     return _compact_geojson(gdf, ["W05_001", "W05_002"], DOWNLOAD_GEOJSON_MAX_BYTES)
 
 
+def geojson_to_kml(geojson_bytes: bytes, document_name: str) -> bytes:
+    """Convert line GeoJSON to a portable KML document without dependencies."""
+    collection = json_loads(geojson_bytes)
+    placemarks: list[str] = []
+    for feature in collection.get("features", []):
+        geometry = feature.get("geometry") or {}
+        properties = feature.get("properties") or {}
+        name = properties.get("W05_002") or properties.get("W05_001") or "河川ライン"
+        if geometry.get("type") == "LineString":
+            lines = [geometry.get("coordinates", [])]
+        elif geometry.get("type") == "MultiLineString":
+            lines = geometry.get("coordinates", [])
+        else:
+            continue
+        line_xml = []
+        for line in lines:
+            coordinates = " ".join(f"{lon:.6f},{lat:.6f},0" for lon, lat, *_ in line)
+            if coordinates:
+                line_xml.append(f"<LineString><tessellate>1</tessellate><coordinates>{coordinates}</coordinates></LineString>")
+        if line_xml:
+            shape = line_xml[0] if len(line_xml) == 1 else f"<MultiGeometry>{''.join(line_xml)}</MultiGeometry>"
+            placemarks.append(f"<Placemark><name>{escape(str(name))}</name>{shape}</Placemark>")
+
+    kml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+        f"<name>{escape(document_name)}</name>"
+        + "".join(placemarks)
+        + "</Document></kml>"
+    )
+    return kml.encode("utf-8")
+
+
 def build_map(
     main: gpd.GeoDataFrame,
     sub: Optional[gpd.GeoDataFrame],
@@ -201,6 +236,7 @@ def build_map(
     for marker in markers:
         folium.Marker(
             location=[marker.lat, marker.lon],
+            tooltip=marker.label or None,
             icon=folium.DivIcon(
                 html='<div style="font-size:32px; color:#DC2626; font-weight:bold;">&times;</div>'
             ),
@@ -282,6 +318,8 @@ def create_static_map_image(
     main: gpd.GeoDataFrame,
     sub: Optional[gpd.GeoDataFrame],
     markers: list[Marker],
+    title: Optional[str] = None,
+    legend: Optional[str] = None,
 ) -> StaticMapResult:
     main_3857 = main.to_crs(epsg=3857)
     sub_3857 = sub.to_crs(epsg=3857) if sub is not None and not sub.empty else None
@@ -355,6 +393,21 @@ def create_static_map_image(
             color="#DC2626",
             zorder=5,
         )
+        for point, marker in zip(marker_series, markers):
+            if marker.label:
+                ax.annotate(
+                    marker.label, (point.x, point.y), xytext=(6, 6),
+                    textcoords="offset points", fontsize=8, color="#7F1D1D",
+                    bbox=dict(facecolor="white", edgecolor="none", alpha=0.8, pad=1.5), zorder=8,
+                )
+
+    if title:
+        label = title if not legend else f"{title}\n{legend}"
+        ax.text(
+            0.02, 0.98, label, transform=ax.transAxes, ha="left", va="top",
+            fontsize=11, fontweight="bold", color="#111827",
+            bbox=dict(facecolor="white", edgecolor="#d1d5db", alpha=0.92, pad=5), zorder=8,
+        )
 
     ax.set_axis_off()
     fig.tight_layout(pad=0)
@@ -378,8 +431,8 @@ def parse_marker_input(text: str) -> list[Marker]:
             continue
         line = line.replace("、", ",")
         parts = [p.strip() for p in line.split(",")]
-        if len(parts) != 2:
-            raise ValueError(f"{idx}行目: '緯度,経度' の形式で入力してください。")
+        if len(parts) not in {2, 3}:
+            raise ValueError(f"{idx}行目: '緯度,経度' または '緯度,経度,ラベル' の形式で入力してください。")
         try:
             lat = float(parts[0])
             lon = float(parts[1])
@@ -387,7 +440,8 @@ def parse_marker_input(text: str) -> list[Marker]:
             raise ValueError(f"{idx}行目: 数値に変換できません。（{raw_line}）") from exc
         if not -90 <= lat <= 90 or not -180 <= lon <= 180:
             raise ValueError(f"{idx}行目: 緯度は-90〜90、経度は-180〜180の範囲で入力してください。")
-        markers.append(Marker(lon=lon, lat=lat))
+        label = parts[2] if len(parts) == 3 else None
+        markers.append(Marker(lon=lon, lat=lat, label=label or None))
     return markers
 
 
@@ -407,6 +461,7 @@ __all__ = [
     "create_static_map_image",
     "download_geojson",
     "filter_geometries",
+    "geojson_to_kml",
     "geometry_summary",
     "parse_marker_input",
 ]

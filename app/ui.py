@@ -14,6 +14,7 @@ from .map_utils import (
     download_geojson,
     filter_geometries,
     geometry_summary,
+    geojson_to_kml,
     parse_marker_input,
 )
 from .data import ASSET_DIR, load_river_geometries, load_river_table, load_water_systems, search_rivers
@@ -158,7 +159,7 @@ def render() -> None:
     if marker_choice == "point":
         marker_input = st.text_area(
             "座標リスト（緯度,経度 を1行ごとに）", placeholder="33.85,132.77\n33.80,132.70",
-            help="複数地点を指定できます。緯度は-90〜90、経度は-180〜180です。",
+            help="「緯度,経度,ラベル」の形式にも対応します。複数地点を指定でき、緯度は-90〜90、経度は-180〜180です。",
         )
 
     signature = (r_type, river_code, marker_choice, marker_input if marker_choice == "point" else "")
@@ -214,7 +215,11 @@ def render() -> None:
     )
 
     with st.spinner("ダウンロード用の静的画像を生成しています..."):
-        static_result = create_static_map_image(main_geom, sub_geom, markers)
+        legend = "青：水系" if sub_geom is None or sub_geom.empty else "青：水系　赤：選択河川"
+        static_result = create_static_map_image(
+            main_geom, sub_geom, markers,
+            title=f"{river_name}（{river_code}）", legend=legend,
+        )
 
     static_bytes = static_result.buffer.getvalue()
     st.image(static_bytes, caption=f"{river_name}（{river_code}）")
@@ -224,8 +229,9 @@ def render() -> None:
         export_frames.append(sub_geom)
     export_gdf = pd.concat(export_frames)
     export_geojson, geojson_simplified = download_geojson(export_gdf)
+    export_kml = geojson_to_kml(export_geojson, f"{river_name}（{river_code}）")
 
-    col_img, col_geo = st.columns(2)
+    col_img, col_geo, col_kml = st.columns(3)
     with col_img:
         st.download_button(
             label="マップ画像をダウンロード (PNG)",
@@ -241,6 +247,15 @@ def render() -> None:
             file_name=f"{river_name}_{river_code}_{r_type}.geojson",
             mime="application/geo+json",
             key=f"download_geojson_{r_type}_{river_code}",
+        )
+    with col_kml:
+        st.download_button(
+            label="KML をダウンロード",
+            data=export_kml,
+            file_name=f"{river_name}_{river_code}_{r_type}.kml",
+            mime="application/vnd.google-earth.kml+xml",
+            key=f"download_kml_{r_type}_{river_code}",
+            help="Google Earth、Google マイマップ、QGIS などで開けます。",
         )
 
     if geojson_simplified:
