@@ -18,6 +18,13 @@ import numpy as np
 from shapely.geometry import Point
 
 
+# Streamlit transports Folium's HTML over a WebSocket.  A large water system
+# can exceed its message limit unless the display-only geometry is simplified.
+# This is roughly 25 m at Japanese latitudes: visually faithful at the map's
+# default scale while substantially smaller than the downloadable GeoJSON.
+WEB_SIMPLIFY_TOLERANCE = 0.00025
+
+
 @dataclass
 class Marker:
     lon: float
@@ -68,6 +75,20 @@ def expand_bounds(
     north = ymax + pad_y
     east = xmax + pad_x
     return (south, west), (north, east)
+
+
+def _web_geojson(gdf: gpd.GeoDataFrame, code_column: str) -> dict:
+    """Create compact GeoJSON for the interactive map only.
+
+    The original geometry remains available for static PNG output and GeoJSON
+    downloads.  Avoiding feature IDs and nonessential attributes also keeps
+    Streamlit's WebSocket payload well below its per-message limit.
+    """
+    display = gdf[[code_column, "geometry"]].copy()
+    display["geometry"] = display.geometry.simplify(
+        WEB_SIMPLIFY_TOLERANCE, preserve_topology=False
+    )
+    return json_loads(display.to_json(drop_id=True))
 
 
 def build_map(
@@ -122,7 +143,7 @@ def build_map(
     )
     fmap.get_root().html.add_child(scale_style)
 
-    main_geojson = json_loads(main.to_json())
+    main_geojson = _web_geojson(main, "W05_001")
     water_layer = folium.FeatureGroup(name="水系", show=True)
     folium.GeoJson(
         data=main_geojson,
@@ -134,7 +155,7 @@ def build_map(
 
     sub_geojson = None
     if sub is not None and not sub.empty:
-        sub_geojson = json_loads(sub.to_json())
+        sub_geojson = _web_geojson(sub, "W05_002")
         river_layer = folium.FeatureGroup(name="河川", show=True)
         folium.GeoJson(
             data=sub_geojson,
