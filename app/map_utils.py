@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import lru_cache
 from io import BytesIO
 from typing import Optional
-from urllib.request import urlopen
 from xml.sax.saxutils import escape
 
 from branca.element import Element, MacroElement, Template
@@ -17,6 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 # Configures Matplotlib with the bundled, free IPAex Japanese font so that
 # title, legend and marker labels survive Streamlit's Linux rendering.
 import japanize_matplotlib  # noqa: F401
@@ -34,7 +33,20 @@ from shapely.geometry import Point
 WEB_GEOJSON_MAX_BYTES = 2_000_000
 DOWNLOAD_GEOJSON_MAX_BYTES = 4_000_000
 SIMPLIFY_TOLERANCES = (0.00025, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02)
-GSI_RELIEF_LEGEND_URL = "https://cyberjapandata.gsi.go.jp/legend/Relief_hanrei.png"
+# A compact, labelled representation of GSI's relief palette.  The source
+# tiles themselves are GSI's free relief tiles; this scale is drawn locally so
+# it remains sharp in PNG exports and never depends on a remote legend image.
+ELEVATION_MAX_METERS = 4000
+ELEVATION_TICKS = (0, 1000, 2000, 3000, 4000)
+ELEVATION_COLORS = (
+    "#51c9dc",  # lowland / coast
+    "#61b95a",
+    "#c5c83a",
+    "#e2ad43",
+    "#bd7650",
+    "#f7f7f2",  # high mountains
+)
+ELEVATION_CMAP = LinearSegmentedColormap.from_list("gsi_relief", ELEVATION_COLORS)
 
 
 @dataclass
@@ -50,8 +62,8 @@ class StaticMapResult:
     warning: Optional[str] = None
 
 
-class GsiElevationLegend(MacroElement):
-    """A Leaflet control that reliably keeps the GSI elevation legend visible."""
+class ElevationColorbar(MacroElement):
+    """A compact, readable elevation bar for the interactive GSI relief map."""
 
     _template = Template(
         """
@@ -59,9 +71,10 @@ class GsiElevationLegend(MacroElement):
         var {{ this.get_name() }} = L.control({position: 'bottomright'});
         {{ this.get_name() }}.onAdd = function() {
             var div = L.DomUtil.create('div', 'river-elevation-legend leaflet-control');
+            div.setAttribute('aria-label', '標高 0 メートルから 4000 メートルのカラーバー');
             div.innerHTML = '<div class="river-elevation-legend__title">標高（m）</div>'
-                + '<div class="river-elevation-legend__image"><img src="{{ this.legend_url }}" alt="国土地理院 色別標高図の標高凡例"></div>'
-                + '<div class="river-elevation-legend__source">地理院タイル・色別標高図</div>';
+                + '<div class="river-elevation-legend__bar"></div>'
+                + '<div class="river-elevation-legend__ticks"><span>0</span><span>1,000</span><span>2,000</span><span>3,000</span><span>4,000</span></div>';
             L.DomEvent.disableClickPropagation(div);
             L.DomEvent.disableScrollPropagation(div);
             return div;
@@ -73,17 +86,6 @@ class GsiElevationLegend(MacroElement):
 
     def __init__(self) -> None:
         super().__init__()
-        self.legend_url = GSI_RELIEF_LEGEND_URL
-
-
-@lru_cache(maxsize=1)
-def _load_relief_legend() -> Optional[np.ndarray]:
-    """Fetch and cache GSI's official elevation-colour legend for PNG maps."""
-    try:
-        with urlopen(GSI_RELIEF_LEGEND_URL, timeout=8) as response:
-            return plt.imread(BytesIO(response.read()), format="png")
-    except Exception:  # pragma: no cover - network dependent
-        return None
 
 
 def filter_geometries(
@@ -234,17 +236,18 @@ def build_map(
     legend_style._template = Template(
         """{% macro html(this, kwargs) %}
         <style>
-          .river-elevation-legend { background: rgba(255,255,255,.96); padding: 6px 6px 5px;
-            border: 1px solid #94a3b8; border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,.28); }
+          .river-elevation-legend { width: 228px; background: rgba(255,255,255,.96); padding: 7px 8px 6px;
+            border: 1px solid #64748b; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,.28); }
           .river-elevation-legend__title { font: 600 12px/1.2 sans-serif; margin: 0 0 4px; color: #0f172a; }
-          .river-elevation-legend__image { width: 96px; height: 132px; overflow: hidden; border-radius: 2px; }
-          .river-elevation-legend__image img { height: 132px; max-width: none; display: block; }
-          .river-elevation-legend__source { font: 9px/1.1 sans-serif; margin-top: 4px; color: #475569; }
+          .river-elevation-legend__bar { height: 13px; border: 1px solid #0f172a;
+            background: linear-gradient(90deg, #51c9dc 0%, #61b95a 19%, #c5c83a 39%, #e2ad43 59%, #bd7650 79%, #f7f7f2 100%); }
+          .river-elevation-legend__ticks { display: flex; justify-content: space-between; margin-top: 3px;
+            font: 10px/1 sans-serif; color: #0f172a; }
         </style>
         {% endmacro %}"""
     )
     fmap.get_root().add_child(legend_style)
-    GsiElevationLegend().add_to(fmap)
+    ElevationColorbar().add_to(fmap)
 
     scale_style = Element(
         """
@@ -471,20 +474,20 @@ def create_static_map_image(
             bbox=dict(facecolor="white", edgecolor="#d1d5db", alpha=0.92, pad=5), zorder=8,
         )
 
-    relief_legend = _load_relief_legend()
-    if relief_legend is not None:
-        # The official legend also includes water depth; the left section is
-        # the elevation scale relevant to this relief map.
-        elevation_legend = relief_legend[:, : relief_legend.shape[1] // 2]
-        # It is deliberately placed inside the map frame so exported PNGs
-        # retain a conventional, compact map layout at every image size.
-        legend_ax = ax.inset_axes([0.845, 0.12, 0.135, 0.42], zorder=9)
-        legend_ax.set_facecolor((1, 1, 1, 0.94))
-        legend_ax.imshow(elevation_legend)
-        legend_ax.set_axis_off()
-        legend_ax.set_title("標高（m）", fontsize=8.5, fontweight="bold", loc="left", pad=3)
-        legend_ax.patch.set_edgecolor("#94a3b8")
-        legend_ax.patch.set_linewidth(0.8)
+    # A horizontal, ticked colour bar mirrors the interactive map and keeps
+    # the conventional map layout: scale bar at left, elevation at right.
+    legend_ax = ax.inset_axes([0.57, 0.075, 0.37, 0.042], zorder=9)
+    colorbar = matplotlib.colorbar.ColorbarBase(
+        legend_ax,
+        cmap=ELEVATION_CMAP,
+        norm=Normalize(vmin=0, vmax=ELEVATION_MAX_METERS),
+        orientation="horizontal",
+        ticks=ELEVATION_TICKS,
+    )
+    colorbar.outline.set_linewidth(0.8)
+    colorbar.ax.tick_params(labelsize=7, length=3, pad=2)
+    colorbar.ax.set_xticklabels([f"{tick:,}" for tick in ELEVATION_TICKS])
+    colorbar.set_label("標高（m）", fontsize=8, labelpad=2)
 
     ax.set_axis_off()
     _add_scale_bar(ax, xlim, ylim)
