@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from io import BytesIO
 from typing import Optional
+from urllib.request import urlopen
 from xml.sax.saxutils import escape
 
 from branca.element import Element
@@ -32,6 +34,7 @@ from shapely.geometry import Point
 WEB_GEOJSON_MAX_BYTES = 2_000_000
 DOWNLOAD_GEOJSON_MAX_BYTES = 4_000_000
 SIMPLIFY_TOLERANCES = (0.00025, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02)
+GSI_RELIEF_LEGEND_URL = "https://cyberjapandata.gsi.go.jp/legend/Relief_hanrei.png"
 
 
 @dataclass
@@ -45,6 +48,16 @@ class Marker:
 class StaticMapResult:
     buffer: BytesIO
     warning: Optional[str] = None
+
+
+@lru_cache(maxsize=1)
+def _load_relief_legend() -> Optional[np.ndarray]:
+    """Fetch and cache GSI's official elevation-colour legend for PNG maps."""
+    try:
+        with urlopen(GSI_RELIEF_LEGEND_URL, timeout=8) as response:
+            return plt.imread(BytesIO(response.read()), format="png")
+    except Exception:  # pragma: no cover - network dependent
+        return None
 
 
 def filter_geometries(
@@ -182,6 +195,17 @@ def build_map(
         max_zoom=18,
         show=False,
     ).add_to(fmap)
+
+    relief_legend = Element(
+        f'''<div style="position: fixed; bottom: 28px; right: 10px; z-index: 1000;
+                    background: rgba(255,255,255,.92); padding: 5px; border: 1px solid #9ca3af;
+                    border-radius: 4px; font-size: 11px; box-shadow: 0 1px 4px rgba(0,0,0,.25);">
+              <div style="font-weight: 600; margin: 0 0 2px;">標高の目安（m）</div>
+              <img src="{GSI_RELIEF_LEGEND_URL}" alt="国土地理院 色別標高図の凡例" style="display:block; max-width:220px;">
+              <div style="font-size:9px; margin-top:2px;">地理院タイル（色別標高図）</div>
+            </div>'''
+    )
+    fmap.get_root().html.add_child(relief_legend)
     folium.TileLayer(
         tiles="https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
         name="GSI Relief",
@@ -411,6 +435,13 @@ def create_static_map_image(
             fontsize=11, fontweight="bold", color="#111827",
             bbox=dict(facecolor="white", edgecolor="#d1d5db", alpha=0.92, pad=5), zorder=8,
         )
+
+    relief_legend = _load_relief_legend()
+    if relief_legend is not None:
+        legend_ax = ax.inset_axes([0.66, 0.02, 0.32, 0.11], zorder=9)
+        legend_ax.imshow(relief_legend)
+        legend_ax.set_axis_off()
+        legend_ax.set_title("標高の目安（m）", fontsize=7, loc="left", pad=1)
 
     ax.set_axis_off()
     fig.tight_layout(pad=0)
