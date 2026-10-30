@@ -414,29 +414,16 @@ def create_static_map_image(
 
     width = max(maxx - minx, 1.0)
     height = max(maxy - miny, 1.0)
-    pad_x = width * 0.08
-    pad_y = height * 0.08
+    # Keep generous geographic breathing room around the selected waterway.
+    # The on-map title, scale and elevation bar then sit on background terrain
+    # rather than covering the river geometry.
+    pad_x = width * 0.32
+    pad_y = height * 0.32
     xlim = (minx - pad_x, maxx + pad_x)
     ylim = (miny - pad_y, maxy + pad_y)
 
-    # Map annotations get their own margins.  Controls must never cover river
-    # geometry, irrespective of where the selected river lies in its bounds.
-    map_aspect = width / height
-    # A tall watershed needs a portrait export; forcing it into a landscape
-    # canvas leaves an unhelpful white field and makes the river details tiny.
-    if map_aspect < 0.80:
-        figure_size = (5.0, 9.8)
-    elif map_aspect > 1.45:
-        figure_size = (10.8, 6.6)
-    else:
-        figure_size = (9.6, 7.0)
-
-    fig = plt.figure(figsize=figure_size, dpi=200)
-    grid = fig.add_gridspec(3, 1, height_ratios=(0.10, 0.80, 0.10), hspace=0)
-    title_ax = fig.add_subplot(grid[0])
-    ax = fig.add_subplot(grid[1])
-    footer_ax = fig.add_subplot(grid[2])
-    fig.subplots_adjust(left=0.025, right=0.975, bottom=0.025, top=0.975)
+    fig, ax = plt.subplots(figsize=(9.6, 6.5), dpi=200)
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
 
@@ -477,18 +464,23 @@ def create_static_map_image(
                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.8, pad=1.5), zorder=8,
                 )
 
-    title_ax.set_axis_off()
     if title:
-        title_ax.text(0, 0.66, title, ha="left", va="center", fontsize=14, fontweight="bold", color="#111827")
-    if legend:
-        title_ax.text(0, 0.20, legend, ha="left", va="center", fontsize=9, color="#475569")
+        label = title if not legend else f"{title}\n{legend}"
+        ax.text(
+            0.025, 0.975, label, transform=ax.transAxes, ha="left", va="top",
+            fontsize=11, fontweight="bold", color="#111827",
+            bbox=dict(facecolor="white", edgecolor="#cbd5e1", alpha=0.92, pad=5), zorder=8,
+        )
 
-    # A horizontal, ticked colour bar belongs in the lower margin, not on the
-    # geographic content.  The left side holds attribution for the free GSI
-    # background tiles.
-    footer_ax.set_axis_off()
-    footer_ax.text(0, 0.50, "背景：地理院タイル（色別標高図）", ha="left", va="center", fontsize=7, color="#475569")
-    legend_ax = footer_ax.inset_axes([0.58, 0.38, 0.40, 0.28])
+    ax.text(
+        0.025, 0.025, "地理院タイル（色別標高図）", transform=ax.transAxes,
+        ha="left", va="bottom", fontsize=6, color="#475569",
+        bbox=dict(facecolor="white", edgecolor="none", alpha=0.70, pad=2), zorder=8,
+    )
+
+    # Keep the bar in the map frame, with enough geographic padding around the
+    # river network to make the control legible without obscuring a channel.
+    legend_ax = ax.inset_axes([0.57, 0.075, 0.37, 0.042], zorder=9)
     colorbar = matplotlib.colorbar.ColorbarBase(
         legend_ax,
         cmap=ELEVATION_CMAP,
