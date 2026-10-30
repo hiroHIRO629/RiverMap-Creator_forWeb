@@ -273,10 +273,15 @@ def create_static_map_image(
 
     basemap_warning = None
     try:
-        # Use the same public, keyless tile source as the interactive map.
-        # Some CARTO endpoints return an "API key required" image rather than
-        # an HTTP error, which contextily cannot detect before embedding it.
-        cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, crs="EPSG:3857", attribution=False)
+        # OpenStreetMap blocks bulk server-side tile retrieval (HTTP 403) and
+        # CARTO can return an "API key required" image instead of an error.
+        # GSI's standard map is a public Japanese basemap and needs no key.
+        cx.add_basemap(
+            ax,
+            source="https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+            crs="EPSG:3857",
+            attribution=False,
+        )
     except Exception as exc:  # pragma: no cover - network dependent
         basemap_warning = f"ベースマップの取得に失敗したため、背景なしで画像を生成しました。（{exc}）"
         ax.set_facecolor("#f2f2f2")
@@ -284,7 +289,7 @@ def create_static_map_image(
     ax.text(
         xlim[0] + (xlim[1] - xlim[0]) * 0.02,
         ylim[0] + (ylim[1] - ylim[0]) * 0.02,
-        "© OpenStreetMap contributors",
+        "地理院タイル",
         fontsize=6,
         color="#4b5563",
         bbox=dict(facecolor="white", edgecolor="none", alpha=0.6, pad=2),
