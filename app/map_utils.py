@@ -7,7 +7,7 @@ from typing import Optional
 from urllib.request import urlopen
 from xml.sax.saxutils import escape
 
-from branca.element import MacroElement, Template
+from branca.element import Element, MacroElement, Template
 from json import loads as json_loads
 
 import contextily as cx
