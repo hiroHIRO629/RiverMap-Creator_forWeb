@@ -234,12 +234,12 @@ def build_map(
     legend_style._template = Template(
         """{% macro html(this, kwargs) %}
         <style>
-          .river-elevation-legend { background: rgba(255,255,255,.94); padding: 5px;
-            border: 1px solid #94a3b8; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-          .river-elevation-legend__title { font: 600 12px/1.2 sans-serif; margin: 0 0 3px; }
-          .river-elevation-legend__image { width: 104px; height: 112px; overflow: hidden; }
-          .river-elevation-legend__image img { height: 112px; max-width: none; display: block; }
-          .river-elevation-legend__source { font: 9px/1.1 sans-serif; margin-top: 3px; color: #475569; }
+          .river-elevation-legend { background: rgba(255,255,255,.96); padding: 6px 6px 5px;
+            border: 1px solid #94a3b8; border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,.28); }
+          .river-elevation-legend__title { font: 600 12px/1.2 sans-serif; margin: 0 0 4px; color: #0f172a; }
+          .river-elevation-legend__image { width: 96px; height: 132px; overflow: hidden; border-radius: 2px; }
+          .river-elevation-legend__image img { height: 132px; max-width: none; display: block; }
+          .river-elevation-legend__source { font: 9px/1.1 sans-serif; margin-top: 4px; color: #475569; }
         </style>
         {% endmacro %}"""
     )
@@ -409,8 +409,10 @@ def create_static_map_image(
     xlim = (minx - pad_x, maxx + pad_x)
     ylim = (miny - pad_y, maxy + pad_y)
 
+    # Keep the map canvas whole.  The elevation scale is an inset control,
+    # like it is on a printed map, rather than a separate empty side panel.
     fig, ax = plt.subplots(figsize=(9.6, 6.5), dpi=200)
-    fig.subplots_adjust(left=0, right=0.79, bottom=0, top=1)
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
 
@@ -474,10 +476,15 @@ def create_static_map_image(
         # The official legend also includes water depth; the left section is
         # the elevation scale relevant to this relief map.
         elevation_legend = relief_legend[:, : relief_legend.shape[1] // 2]
-        legend_ax = fig.add_axes([0.82, 0.18, 0.15, 0.64])
+        # It is deliberately placed inside the map frame so exported PNGs
+        # retain a conventional, compact map layout at every image size.
+        legend_ax = ax.inset_axes([0.845, 0.12, 0.135, 0.42], zorder=9)
+        legend_ax.set_facecolor((1, 1, 1, 0.94))
         legend_ax.imshow(elevation_legend)
         legend_ax.set_axis_off()
-        legend_ax.set_title("標高（m）", fontsize=10, loc="left", pad=5)
+        legend_ax.set_title("標高（m）", fontsize=8.5, fontweight="bold", loc="left", pad=3)
+        legend_ax.patch.set_edgecolor("#94a3b8")
+        legend_ax.patch.set_linewidth(0.8)
 
     ax.set_axis_off()
     _add_scale_bar(ax, xlim, ylim)
