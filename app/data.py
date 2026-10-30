@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
+import unicodedata
 
 import geopandas as gpd
 import numpy as np
@@ -76,6 +78,49 @@ def load_water_systems() -> list[str]:
     ]
 
 
+def normalize_search_text(value: object) -> str:
+    """Return a comparison-friendly Japanese search key.
+
+    River lists contain a mixture of full-width spaces and occasional spacing
+    differences.  Normalising those details makes partial-name search useful
+    without changing the original labels shown to users.
+    """
+    if value is None or (not isinstance(value, (list, tuple, dict, set)) and pd.isna(value)):
+        return ""
+    text = unicodedata.normalize("NFKC", str(value)).casefold()
+    return re.sub(r"[\s\u3000]+", "", text)
+
+
+def search_rivers(
+    river_table: pd.DataFrame,
+    query: str = "",
+    water_system: str | None = None,
+    prefecture: str | None = None,
+    limit: int = 200,
+) -> pd.DataFrame:
+    """Find river records by partial name and optional free local filters."""
+    result = river_table.reset_index().copy()
+    if water_system and water_system != "すべて":
+        result = result[result["水系"].fillna("") == water_system]
+    if prefecture and prefecture != "すべて":
+        # A record can cover more than one prefecture, so exact equality is
+        # intentionally not required here.
+        result = result[result["都道府県"].fillna("").str.contains(prefecture, regex=False)]
+
+    key = normalize_search_text(query)
+    if key:
+        searchable_columns = [column for column in ("河川名", "水系", "都道府県") if column in result]
+        matches = pd.Series(False, index=result.index)
+        for column in searchable_columns:
+            matches |= result[column].map(normalize_search_text).str.contains(key, regex=False)
+        result = result[matches]
+
+    # Duplicate records occasionally exist in the source table.  Showing one
+    # choice per river code prevents an ambiguous select box.
+    result = result.drop_duplicates(subset=["河川コード"])
+    return result.sort_values(["水系", "河川名", "河川コード"], kind="stable").head(limit)
+
+
 __all__ = [
     "ASSET_DIR",
     "DATA_DIR",
@@ -83,4 +128,6 @@ __all__ = [
     "load_river_table",
     "load_river_geometries",
     "load_water_systems",
+    "normalize_search_text",
+    "search_rivers",
 ]

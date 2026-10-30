@@ -332,8 +332,19 @@ def parse_marker_input(text: str) -> list[Marker]:
             lon = float(parts[1])
         except ValueError as exc:
             raise ValueError(f"{idx}行目: 数値に変換できません。（{raw_line}）") from exc
+        if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+            raise ValueError(f"{idx}行目: 緯度は-90〜90、経度は-180〜180の範囲で入力してください。")
         markers.append(Marker(lon=lon, lat=lat))
     return markers
+
+
+def geometry_summary(gdf: gpd.GeoDataFrame) -> dict[str, float | int]:
+    """Summarise the rendered linework for a compact, honest river card."""
+    projected = gdf.to_crs(epsg=3857)
+    return {
+        "line_count": int(len(gdf)),
+        "length_km": float(projected.length.sum() / 1000),
+    }
 
 
 __all__ = [
@@ -342,5 +353,6 @@ __all__ = [
     "build_map",
     "create_static_map_image",
     "filter_geometries",
+    "geometry_summary",
     "parse_marker_input",
 ]
