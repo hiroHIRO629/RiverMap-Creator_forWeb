@@ -7,7 +7,7 @@ from typing import Optional
 from urllib.request import urlopen
 from xml.sax.saxutils import escape
 
-from branca.element import Element
+from branca.element import MacroElement, Template
 from json import loads as json_loads
 
 import contextily as cx
@@ -48,6 +48,32 @@ class Marker:
 class StaticMapResult:
     buffer: BytesIO
     warning: Optional[str] = None
+
+
+class GsiElevationLegend(MacroElement):
+    """A Leaflet control that reliably keeps the GSI elevation legend visible."""
+
+    _template = Template(
+        """
+        {% macro script(this, kwargs) %}
+        var {{ this.get_name() }} = L.control({position: 'bottomright'});
+        {{ this.get_name() }}.onAdd = function() {
+            var div = L.DomUtil.create('div', 'river-elevation-legend leaflet-control');
+            div.innerHTML = '<div class="river-elevation-legend__title">標高（m）</div>'
+                + '<div class="river-elevation-legend__image"><img src="{{ this.legend_url }}" alt="国土地理院 色別標高図の標高凡例"></div>'
+                + '<div class="river-elevation-legend__source">地理院タイル・色別標高図</div>';
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+            return div;
+        };
+        {{ this.get_name() }}.addTo({{ this._parent.get_name() }});
+        {% endmacro %}
+        """
+    )
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.legend_url = GSI_RELIEF_LEGEND_URL
 
 
 @lru_cache(maxsize=1)
@@ -196,16 +222,6 @@ def build_map(
         show=False,
     ).add_to(fmap)
 
-    relief_legend = Element(
-        f'''<div style="position: fixed; bottom: 28px; right: 10px; z-index: 1000;
-                    background: rgba(255,255,255,.92); padding: 5px; border: 1px solid #9ca3af;
-                    border-radius: 4px; font-size: 11px; box-shadow: 0 1px 4px rgba(0,0,0,.25);">
-              <div style="font-weight: 600; margin: 0 0 2px;">標高の目安（m）</div>
-              <img src="{GSI_RELIEF_LEGEND_URL}" alt="国土地理院 色別標高図の凡例" style="display:block; max-width:220px;">
-              <div style="font-size:9px; margin-top:2px;">地理院タイル（色別標高図）</div>
-            </div>'''
-    )
-    fmap.get_root().html.add_child(relief_legend)
     folium.TileLayer(
         tiles="https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
         name="GSI Relief",
@@ -213,6 +229,22 @@ def build_map(
         max_zoom=15,
         show=True,
     ).add_to(fmap)
+
+    legend_style = MacroElement()
+    legend_style._template = Template(
+        """{% macro html(this, kwargs) %}
+        <style>
+          .river-elevation-legend { background: rgba(255,255,255,.94); padding: 5px;
+            border: 1px solid #94a3b8; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+          .river-elevation-legend__title { font: 600 12px/1.2 sans-serif; margin: 0 0 3px; }
+          .river-elevation-legend__image { width: 104px; height: 112px; overflow: hidden; }
+          .river-elevation-legend__image img { height: 112px; max-width: none; display: block; }
+          .river-elevation-legend__source { font: 9px/1.1 sans-serif; margin-top: 3px; color: #475569; }
+        </style>
+        {% endmacro %}"""
+    )
+    fmap.get_root().add_child(legend_style)
+    GsiElevationLegend().add_to(fmap)
 
     scale_style = Element(
         """
@@ -377,7 +409,8 @@ def create_static_map_image(
     xlim = (minx - pad_x, maxx + pad_x)
     ylim = (miny - pad_y, maxy + pad_y)
 
-    fig, ax = plt.subplots(figsize=(8.5, 6.5), dpi=200)
+    fig, ax = plt.subplots(figsize=(9.6, 6.5), dpi=200)
+    fig.subplots_adjust(left=0, right=0.79, bottom=0, top=1)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
 
@@ -438,14 +471,15 @@ def create_static_map_image(
 
     relief_legend = _load_relief_legend()
     if relief_legend is not None:
-        legend_ax = ax.inset_axes([0.66, 0.02, 0.32, 0.11], zorder=9)
-        legend_ax.imshow(relief_legend)
+        # The official legend also includes water depth; the left section is
+        # the elevation scale relevant to this relief map.
+        elevation_legend = relief_legend[:, : relief_legend.shape[1] // 2]
+        legend_ax = fig.add_axes([0.82, 0.18, 0.15, 0.64])
+        legend_ax.imshow(elevation_legend)
         legend_ax.set_axis_off()
-        legend_ax.set_title("標高の目安（m）", fontsize=7, loc="left", pad=1)
+        legend_ax.set_title("標高（m）", fontsize=10, loc="left", pad=5)
 
     ax.set_axis_off()
-    fig.tight_layout(pad=0)
-
     _add_scale_bar(ax, xlim, ylim)
 
     buffer = BytesIO()
