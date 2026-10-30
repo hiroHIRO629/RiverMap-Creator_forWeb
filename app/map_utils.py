@@ -306,7 +306,14 @@ def build_map(
 
     folium.LayerControl(collapsed=True, position="topright").add_to(fmap)
 
-    fmap.fit_bounds([[south, west], [north, east]], padding=(28, 28))
+    # Reserve a safe viewing area around the data.  The lower-right space is
+    # deliberately larger because the elevation bar lives there; fit_bounds
+    # keeps every selected river line out from underneath that control.
+    fmap.fit_bounds(
+        [[south, west], [north, east]],
+        padding_top_left=(56, 56),
+        padding_bottom_right=(278, 112),
+    )
     return fmap
 
 
@@ -412,10 +419,24 @@ def create_static_map_image(
     xlim = (minx - pad_x, maxx + pad_x)
     ylim = (miny - pad_y, maxy + pad_y)
 
-    # Keep the map canvas whole.  The elevation scale is an inset control,
-    # like it is on a printed map, rather than a separate empty side panel.
-    fig, ax = plt.subplots(figsize=(9.6, 6.5), dpi=200)
-    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    # Map annotations get their own margins.  Controls must never cover river
+    # geometry, irrespective of where the selected river lies in its bounds.
+    map_aspect = width / height
+    # A tall watershed needs a portrait export; forcing it into a landscape
+    # canvas leaves an unhelpful white field and makes the river details tiny.
+    if map_aspect < 0.80:
+        figure_size = (5.0, 9.8)
+    elif map_aspect > 1.45:
+        figure_size = (10.8, 6.6)
+    else:
+        figure_size = (9.6, 7.0)
+
+    fig = plt.figure(figsize=figure_size, dpi=200)
+    grid = fig.add_gridspec(3, 1, height_ratios=(0.10, 0.80, 0.10), hspace=0)
+    title_ax = fig.add_subplot(grid[0])
+    ax = fig.add_subplot(grid[1])
+    footer_ax = fig.add_subplot(grid[2])
+    fig.subplots_adjust(left=0.025, right=0.975, bottom=0.025, top=0.975)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
 
@@ -433,16 +454,6 @@ def create_static_map_image(
     except Exception as exc:  # pragma: no cover - network dependent
         basemap_warning = f"ベースマップの取得に失敗したため、背景なしで画像を生成しました。（{exc}）"
         ax.set_facecolor("#f2f2f2")
-
-    ax.text(
-        xlim[0] + (xlim[1] - xlim[0]) * 0.02,
-        ylim[0] + (ylim[1] - ylim[0]) * 0.02,
-        "地理院タイル",
-        fontsize=6,
-        color="#4b5563",
-        bbox=dict(facecolor="white", edgecolor="none", alpha=0.6, pad=2),
-        zorder=6,
-    )
 
     main_3857.plot(ax=ax, linewidth=2.0, color="#1D4ED8", alpha=0.95)
     if sub_3857 is not None and not sub_3857.empty:
@@ -466,17 +477,18 @@ def create_static_map_image(
                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.8, pad=1.5), zorder=8,
                 )
 
+    title_ax.set_axis_off()
     if title:
-        label = title if not legend else f"{title}\n{legend}"
-        ax.text(
-            0.02, 0.98, label, transform=ax.transAxes, ha="left", va="top",
-            fontsize=11, fontweight="bold", color="#111827",
-            bbox=dict(facecolor="white", edgecolor="#d1d5db", alpha=0.92, pad=5), zorder=8,
-        )
+        title_ax.text(0, 0.66, title, ha="left", va="center", fontsize=14, fontweight="bold", color="#111827")
+    if legend:
+        title_ax.text(0, 0.20, legend, ha="left", va="center", fontsize=9, color="#475569")
 
-    # A horizontal, ticked colour bar mirrors the interactive map and keeps
-    # the conventional map layout: scale bar at left, elevation at right.
-    legend_ax = ax.inset_axes([0.57, 0.075, 0.37, 0.042], zorder=9)
+    # A horizontal, ticked colour bar belongs in the lower margin, not on the
+    # geographic content.  The left side holds attribution for the free GSI
+    # background tiles.
+    footer_ax.set_axis_off()
+    footer_ax.text(0, 0.50, "背景：地理院タイル（色別標高図）", ha="left", va="center", fontsize=7, color="#475569")
+    legend_ax = footer_ax.inset_axes([0.58, 0.38, 0.40, 0.28])
     colorbar = matplotlib.colorbar.ColorbarBase(
         legend_ax,
         cmap=ELEVATION_CMAP,
