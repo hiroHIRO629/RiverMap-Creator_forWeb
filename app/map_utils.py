@@ -180,14 +180,14 @@ def build_map(
         name="地理院タイル（標準地図）",
         attr="地理院タイル",
         max_zoom=18,
-        show=True,
+        show=False,
     ).add_to(fmap)
     folium.TileLayer(
         tiles="https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
         name="GSI Relief",
         attr="地理院タイル（標高陰影図）",
         max_zoom=15,
-        show=False,
+        show=True,
     ).add_to(fmap)
 
     scale_style = Element(
